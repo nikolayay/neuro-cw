@@ -75,6 +75,7 @@ def get_fano_factor(spike_train, trial_len, intervals):
         var = np.var(spike_counts)
         mean = np.mean(spike_counts)
         fano = var / mean
+        print(fano)
         fanos.append(fano)
 
     return np.mean(fanos)
@@ -137,8 +138,8 @@ def plot_autocorrelogram(spikes, steps):
 
 def get_STA(spikes, stimulus, window_size):
     """
-    1. For every spike, add the stimulus values surrounding the spike into the spike-triggered average array. 
-        For example, a spike at 10.12s, the stimulus at 10.02s goes into the -0.10s bin, 
+    1. For every spike, add the stimulus values surrounding the spike into the spike-triggered average array.
+        For example, a spike at 10.12s, the stimulus at 10.02s goes into the -0.10s bin,
         the stimulus at 10.03s goes into the -0.09s bin.
         Do this for a given time before and after the spike. Repeat for all spikes.
     2. Once all the values are added into the array, divide by number of spikes to get spike-triggered average.
@@ -165,16 +166,24 @@ q1_tau_ref = 5 * ms  # refactory period
 q1_trial_len = 1000 * sec
 
 q1_spike_train = get_spike_train(q1_rate, q1_trial_len, q1_tau_ref)
-
+q1_spike_train_no_ref = get_spike_train(q1_rate, q1_trial_len, 0 * ms)
 q1_intervals = [10 * ms, 50 * ms, 100 * ms]
+
 q1_Fano = get_fano_factor(q1_spike_train, q1_trial_len, q1_intervals)
-q1_Coef_of_var = get_coef_of_var(q1_spike_train)
+q1_CV = get_coef_of_var(q1_spike_train)
+
+q1_Fano_no_ref = get_fano_factor(
+    q1_spike_train_no_ref, q1_trial_len, q1_intervals)
+q1_CV_no_ref = get_coef_of_var(q1_spike_train_no_ref)
 
 # ! QUESTION 1 - ANSWERS
-print(f'ANSWERS FOR QUESTION 1')
-# print("WITH SPIKE TRAIN: %s\n" % (spike_train))
+print(f'ANSWERS FOR QUESTION 1 (refactory period 5ms)')
 print(f'FANO FACTOR: {q1_Fano}')
-print(f'COEFFICIENT OF VARIATION: {q1_Coef_of_var}\n')
+print(f'COEFFICIENT OF VARIATION: {q1_CV}\n')
+
+print(f'ANSWERS FOR QUESTION 1 (refactory perioud 0ms)')
+print(f'FANO FACTOR: {q1_Fano_no_ref}')
+print(f'COEFFICIENT OF VARIATION: {q1_CV_no_ref}\n')
 
 
 # ! QUESTION 2
@@ -189,14 +198,13 @@ q2_spike_train = spikes_to_spike_train(q2_spikes, q2_tau_ref)
 # same as q1
 q2_intervals = [10 * ms, 50 * ms, 100 * ms]
 q2_Fano = get_fano_factor(q2_spike_train, q2_trial_len, q2_intervals)
-q2_Coef_of_var = get_coef_of_var(q2_spike_train)
+q2_CV = get_coef_of_var(q2_spike_train)
 
 
 # ! QUESTION 2 - ANSWERS
 print(f'ANSWERS FOR QUESTION 2')
-# print("WITH SPIKE TRAIN: %s\n" % (spike_train))
 print(f'FANO FACTOR: {q2_Fano}')
-print(f'COEFFICIENT OF VARIATION: {q2_Coef_of_var}\n')
+print(f'COEFFICIENT OF VARIATION: {q2_CV}\n')
 
 
 # # ! QUESTION 3
@@ -205,15 +213,26 @@ q3_spikes = load_data("rho.dat", int)
 q3_interval = 100 * ms
 q3_tau_ref = 2 * ms
 
-q3_steps = q3_interval / q3_tau_ref
 
-print(q3_spikes)
+def autocorr(x):
+    result = np.correlate(x, x, mode='full')
+    return result[int((result.size/2)-50):int((result.size/2)+50)]
 
 
+plt.bar(np.linspace(0, 100, autocorr(
+    q3_spikes[:8000]).size), autocorr(q3_spikes[:8000]))
 
+plt.title("Spike trains recorded from H1 in fly.")
 
-# # ! QUESTION 4
-# # ? calculate and plot the spike triggered average (STA) over a window
+plt.ylabel("Number of spikes")
+plt.xlabel("Interval (ms)")
+plt.xticks(np.linspace(0, 100, 5), [-100, -50, 0, 50, 100])
+
+plt.savefig("q3.png")
+plt.clf()
+
+# # # ! QUESTION 4
+# # # ? calculate and plot the spike triggered average (STA) over a window
 q4_window_size = 100 * ms
 q4_stimulus = load_data("stim.dat", float)
 q4_spikes = load_data("rho.dat", int)
@@ -222,10 +241,9 @@ q4_spikes = load_data("rho.dat", int)
 q4_STA = get_STA(q4_spikes, q4_stimulus, q4_window_size)
 
 plt.plot(np.linspace(-100, 0, len(q4_STA)), q4_STA[::-1])
+plt.title("Spike triggered average recorded from H1 in fly.")
+plt.ylabel("Stimulus value")
+plt.xlabel("Time before spike (ms)")
 plt.bar(np.linspace(-100, 0, len(q4_STA)), q4_STA[::-1])
 
-plt.show()
-
-# spike_train = get_spike_train(rate, big_t, tau_ref)
-# print(len(spike_train)/big_t)
-# print(spike_train)
+plt.savefig("q4.png")
